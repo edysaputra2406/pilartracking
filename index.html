@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PILAR TRACKING</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        pln: {
+                            blue: '#00A2E8',
+                            darkBlue: '#0056B3',
+                            navy: '#0F2537',
+                            yellow: '#FFC000',
+                            red: '#ED1C24'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen">
+
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex-col items-center justify-center text-white transition-all duration-300">
+        <div class="relative flex items-center justify-center">
+            <div class="w-16 h-16 border-4 border-pln-blue border-t-transparent rounded-full animate-spin"></div>
+            <i class="fa-solid fa-bolt text-pln-yellow text-xl absolute animate-pulse"></i>
+        </div>
+        <p id="loadingText" class="mt-4 text-sm font-semibold tracking-wide animate-pulse">Memuat Data...</p>
+    </div>
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="min-h-screen flex flex-col">
+
+        <!-- LOGIN VIEW -->
+        <div id="loginView" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-pln-navy to-slate-800">
+            <div class="w-full max-w-md bg-white/95 backdrop-blur-md pt-2 px-8 pb-8 rounded-3xl shadow-2xl border border-white/20">
+                <div class="text-center mb-0">
+                    <div class="text-center mb-0">
+                    <!-- Kotak putih (bg-white, rounded-2xl, shadow, padding) dihapus, ukuran diatur langsung pada tag img -->
+                    <img src="https://lh3.googleusercontent.com/d/1-72YOL2SYpoKphvu9FsEai4CWhDfId8U" alt="Logo Pilar Tracking" class="w-48 h-48 mx-auto object-contain drop-shadow-md">
+                    </div>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Username</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-user text-sm"></i>
+                            </span>
+                            <input type="text" id="loginUser" required class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pln-blue/50 focus:border-pln-blue text-sm transition" placeholder="Masukkan ID / Username">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                            </span>
+                            <input type="password" id="loginPass" required class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pln-blue/50 focus:border-pln-blue text-sm transition" placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <div id="loginError" class="hidden text-xs text-red-500 bg-red-50 p-3 rounded-lg border border-red-200">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i> Username atau password salah!
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-pln-blue to-pln-darkBlue hover:from-pln-darkBlue hover:to-slate-900 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-pln-blue/25 hover:shadow-none transition-all duration-200 text-sm flex items-center justify-center gap-2">
+                        <span>Masuk ke Sistem</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <div class="mt-8 pt-4 border-t border-slate-100 text-center text-xs text-slate-400">
+                    Pilar Tracking &copy; 2026
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN LAYOUT (LAPTOP / ADMIN VIEW & MOBILE / PETUGAS VIEW) -->
+        <div id="mainView" class="hidden flex-1 flex flex-col md:flex-row min-h-screen">
+
+            <!-- SIDEBAR (Laptop/Admin View) -->
+            <aside id="sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0">
+                <div class="p-6 border-b border-slate-800 flex flex-col items-center text-center gap-3">
+                    <!-- Logo dengan ukuran proporsional, sudut melengkung modern, dan efek bayangan glow -->
+                    <div class="w-[104px] h-[104px] bg-gradient-to-br from-white via-slate-50 to-slate-200 rounded-3xl flex items-center justify-center shadow-2xl shadow-pln-blue/40 ring-1 ring-white/60 overflow-hidden p-2.5 transition-all duration-300 hover:scale-105">
+                        <!-- Ganti URL di bawah dengan Direct Link logo Anda -->
+                        <img src="https://lh3.googleusercontent.com/d/1-72YOL2SYpoKphvu9FsEai4CWhDfId8U" alt="Logo" class="w-full h-full object-contain filter drop-shadow-sm">
+                    </div>
+                    <div>
+                        <p id="desktopUserName" class="text-sm font-bold text-white"></p>
+                    </div>
+                </div>
+
+                <nav class="flex-1 p-4 space-y-1">
+                    <!-- Menu Dashboard -->
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <span class="w-6 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-gauge-high text-base"></i>
+                        </span>
+                        <span>Dashboard</span>
+                    </button>
+                    
+                    <!-- Menu Upload Dokumen -->
+                    <div id="menuUploadContainer">
+                        <button onclick="switchTab('prr')" id="nav-prr" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                            <span class="w-6 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+                            </span>
+                            <span>Upload Dokumen</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Menu Download Dokumen -->
+                    <button onclick="switchTab('download')" id="nav-download" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <span class="w-6 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-cloud-arrow-down text-base"></i>
+                        </span>
+                        <span>Download Dokumen</span>
+                    </button>
+                </nav>
+
+                <div class="p-4 border-t border-slate-800">
+                    <button onclick="handleLogout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-rose-400 hover:bg-rose-500/10 transition">
+                        <span class="w-6 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-right-from-bracket text-base"></i>
+                        </span>
+                        <span>Keluar System</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT AREA -->
+            <main class="flex-1 flex flex-col min-w-0 bg-slate-50 pb-20 md:pb-6">
+                <!-- Topbar (Mobile Header) -->
+                <header class="md:hidden bg-slate-900 text-white p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
+    <div class="flex items-center gap-2.5">
+        <!-- Kotak latar belakang putih khusus untuk logo -->
+        <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm">
+            <img src="https://lh3.googleusercontent.com/d/1-72YOL2SYpoKphvu9FsEai4CWhDfId8U" alt="Logo" class="w-full h-full object-contain">
+        </div>
+        <span class="font-bold text-sm tracking-wide">PILAR TRACKING</span>
+    </div>
+    <div class="flex items-center gap-3">
+        <span id="mobileUserInfo" class="text-xs text-slate-300 font-medium">Petugas</span>
+        <button onclick="handleLogout()" class="text-xs text-rose-400 bg-slate-800 p-2 rounded-lg">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+    </div>
+</header>
+
+                <div class="p-4 md:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
+                    
+                    <!-- SECTION 1: DASHBOARD / HOME CHART -->
+                    <div id="section-dashboard" class="space-y-6 pt-6">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <!-- Sisi Kiri: Judul & Filter ULP berdampingan -->
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div>
+                                <h1 class="text-xl font-bold text-slate-900">Monitoring dan Realisasi PRR</h1>
+                                <p class="text-xs text-slate-500">Revisit Lapangan Dan Kelengkapan Dokumen PRR</p>
+                            </div>
+
+                            <!-- Dropdown Filter ULP khusus Admin UP3 -->
+                            <div id="adminUp3FilterContainer" class="hidden items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 shadow-sm w-fit">
+                                <i class="fa-solid fa-filter text-pln-blue"></i>
+                                <span>Filter ULP:</span>
+                                <select id="selectUlpFilter" onchange="handleUlpFilterChange()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-pln-blue">
+                                    <option value="ALL">Semua ULP</option>
+                                </select>
+                            </div>
+
+                            <!-- Dropdown Filter Bertingkat (UP3 & ULP) khusus Admin UID -->
+                              <div id="adminUidFilterContainer" class="hidden flex flex-row items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 shadow-sm w-fit">
+                                  <!-- Filter UP3 -->
+                                  <div class="flex items-center gap-1.5">
+                                      <i class="fa-solid fa-filter text-pln-blue"></i>
+                                      <span>UP3:</span>
+                                      <select id="selectUp3Filter" onchange="handleUp3FilterChange()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-pln-blue cursor-pointer">
+                                          <option value="ALL">Semua UP3</option>
+                                      </select>
+                                  </div>
+
+                                  <!-- Garis Pemisah Tipis (Opsional agar terlihat rapi) -->
+                                  <div class="h-4 w-[1px] bg-slate-200"></div>
+
+                                  <!-- Filter ULP -->
+                                  <div class="flex items-center gap-1.5">
+                                      <span>ULP:</span>
+                                      <select id="selectUidUlpFilter" onchange="handleUidUlpFilterChange()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-pln-blue cursor-pointer">
+                                          <option value="ALL">Semua ULP</option>
+                                      </select>
+                                  </div>
+                              </div>
+                        </div>
+
+                        <!-- Sisi Kanan: Informasi Unit / UP3 -->
+                        <div class="bg-white px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-filter text-pln-blue"></i>
+                            <span id="areaFilterDisplay">ULP / UP3: All</span>
+                        </div>
+                    </div>
+
+                        <!-- 4 METRIC CARDS -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Card 1 -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-blue-50 text-pln-blue flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-medium text-slate-500 truncate">Total Data PRR</p>
+                                    <h3 id="cardTotalData" class="text-xl font-bold text-slate-900 mt-0.5">0</h3>
+                                </div>
+                            </div>
+                            <!-- Card 2 -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid fa-money-bill-wave"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-medium text-slate-500 truncate">Total Nominal PRR</p>
+                                    <h3 id="cardTotalNominal" class="text-xl font-bold text-slate-900 mt-0.5">Rp 0</h3>
+                                </div>
+                            </div>
+                            <!-- Card 3 -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-medium text-slate-500 truncate">Total Data Valid</p>
+                                    <h3 id="cardDataValid" class="text-xl font-bold text-slate-900 mt-0.5">0</h3>
+                                </div>
+                            </div>
+                            <!-- Card 4 -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-medium text-slate-500 truncate">Total Nominal Valid</p>
+                                    <h3 id="cardNominalValid" class="text-xl font-bold text-slate-900 mt-0.5">Rp 0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CHARTS SECTION -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-column text-pln-blue"></i>
+                                    Status Revisit Lapangan
+                                </h4>
+                                <div class="h-64">
+                                    <canvas id="chartStatus"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-pie-chart text-emerald-500"></i>
+                                    Status Kelengkapan Dokumen
+                                </h4>
+                                <div class="h-64 flex items-center justify-center">
+                                    <canvas id="chartDokumen"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: LIST PRR / UPLOAD DOKUMEN -->
+                    <div id="section-prr" class="space-y-4 hidden">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h1 id="prrSectionTitle" class="text-xl font-bold text-slate-900">Daftar Pelanggan PRR</h1>
+                                <p class="text-xs text-slate-500">Pilih IDPEL untuk melakukan upload dokumen PRR</p>
+                            </div>
+                            
+                            <div class="relative w-full sm:w-72">
+                                <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                                <input type="text" id="prrSearchInput" onkeyup="filterPRRList()" placeholder="Cari IDPEL / Nama..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-pln-blue outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Data Cards List -->
+                        <div id="prrListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Items injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- <!-- SECTION 3: DOWNLOAD DOKUMEN (Admin Only) -->
+<div id="section-download" class="space-y-6 hidden">
+    <div>
+        <h1 class="text-xl font-bold text-slate-900">Download Dokumen PRR</h1>
+        <p class="text-xs text-slate-500">Pencarian dokumen pendukung berdasarkan IDPEL</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row gap-1 max-w-xl">
+            <input type="text" id="searchIdpelDownload" placeholder="Masukkan IDPEL Pelanggan..." class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pln-blue outline-none">
+            <button onclick="searchDokumenByIDPEL()" class="bg-pln-blue hover:bg-pln-darkBlue text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 shrink-0">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Cari Dokumen</span>
+            </button>
+        </div>
+
+        <div id="downloadResult" class="hidden pt-4 border-t border-slate-100 space-y-4">
+            <!-- Header & Tombol Unduh Semua -->
+            <div class="flex flex-row items-center justify-between gap-3">
+                <h4 class="text-sm font-bold text-slate-800 truncate" id="resultHeader">Dokumen & Foto Pelanggan: -</h4>
+                
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="downloadAllDocs()" class="px-3.5 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition shadow-sm inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Unduh Semua
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Dokumen & Foto (Hanya ada 1 ID docGrid di sini) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="docGrid">
+                <!-- Dynamic Items (PDF & Foto) -->
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Kotak Daftar Dokumen & Foto (Digabung jadi satu grid agar bentuknya sama persis) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="docGrid">
+        <!-- Dynamic Items (PDF & Foto akan tampil di sini dengan bentuk seragam) -->
+    </div>
+</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM NAV (Mobile / Petugas View) -->
+                <nav id="bottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 flex justify-around p-2">
+
+                    <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="mobile-nav-btn flex flex-col items-center gap-1 p-2 text-pln-blue transition">
+                        <i class="fa-solid fa-house text-lg"></i>
+                        <span class="text-[10px] font-medium">Home</span>
+                    </button>
+
+                    <button onclick="switchTab('prr')" id="mobile-nav-prr" class="mobile-nav-btn flex flex-col items-center gap-1 p-2 text-pln-blue transition">
+                        <i class="fa-solid fa-clipboard-list text-lg"></i>
+                        <span class="text-[10px] font-medium">Data PRR</span>
+                    </button>
+                    
+                </nav>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL 1: FORM REVISIT LAPANGAN (PETUGAS - HP) -->
+    <div id="modalRevisit" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white rounded-t-3xl">
+                <div>
+                    <h3 class="font-bold text-sm">Entri Revisit Lapangan</h3>
+                    <p id="modalRevisitIdpel" class="text-xs text-slate-400">IDPEL: -</p>
+                </div>
+                <button onclick="closeModal('modalRevisit')" class="text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="formRevisit" onsubmit="submitFormRevisit(event)" class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+                <input type="hidden" id="revRowIndex">
+                <!-- Tanggal Revisit disembunyikan menggunakan kelas hidden, tetapi nilainya tetap terisi otomatis oleh script -->
+                <div class="hidden">
+                    <label class="block font-semibold text-slate-600 mb-1">Tanggal Revisit</label>
+                    <input type="text" id="revTanggal" readonly class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-medium text-slate-700">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Foto Bekas KWH</label>
+                    <input type="file" id="revFotoKwh" accept="image/*" capture="environment" required class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pln-blue/10 file:text-pln-blue hover:file:bg-pln-blue/20">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Foto Bangunan</label>
+                    <input type="file" id="revFotoBangunan" accept="image/*" capture="environment" required class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pln-blue/10 file:text-pln-blue hover:file:bg-pln-blue/20">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Foto Tetangga Kiri</label>
+                    <input type="file" id="revFotoKiri" accept="image/*" capture="environment" required class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pln-blue/10 file:text-pln-blue hover:file:bg-pln-blue/20">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Foto Tetangga Kanan</label>
+                    <input type="file" id="revFotoKanan" accept="image/*" capture="environment" required class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pln-blue/10 file:text-pln-blue hover:file:bg-pln-blue/20">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Foto Tetangga Depan</label>
+                    <input type="file" id="revFotoDepan" accept="image/*" capture="environment" required class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pln-blue/10 file:text-pln-blue hover:file:bg-pln-blue/20">
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Lokasi (GPS)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="revLokasi" readonly class="flex-1 p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-700">
+                        <button type="button" disabled class="px-3 bg-slate-200 text-slate-400 rounded-xl cursor-not-allowed">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Keterangan</label>
+                    <select id="revKeterangan" required class="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pln-blue">
+                        <option value="" disabled selected>Pilih Keterangan</option>
+                        <option value="BANGUNAN RATA TANAH">BANGUNAN RATA TANAH</option>
+                        <option value="BAYAR LUNAS">BAYAR LUNAS</option>
+                        <option value="NYALA LEVERING">NYALA LEVERING</option>
+                        <option value="NYALA PASANG BARU">NYALA PASANG BARU</option>
+                        <option value="PERSIL TIDAK BERPENGHUNI">PERSIL TIDAK BERPENGHUNI</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modalRevisit')" class="w-1/2 py-3 border border-slate-200 rounded-xl font-semibold text-slate-600">Batal</button>
+                    <button type="submit" class="w-1/2 py-3 bg-pln-blue hover:bg-pln-darkBlue text-white rounded-xl font-semibold shadow-md">Simpan Revisit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: UPLOAD DOKUMEN (ADMIN - LAPTOP) -->
+    <div id="modalUpload" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white rounded-t-3xl">
+                <div>
+                    <h3 class="font-bold text-sm">Upload Dokumen PRR</h3>
+                    <p id="modalUploadIdpel" class="text-xs text-slate-400">IDPEL: -</p>
+                </div>
+                <button onclick="closeModal('modalUpload')" class="text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="formUpload" onsubmit="submitFormUpload(event)" class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+                <input type="hidden" id="upRowIndex">
+                
+                <!-- Tanggal Upload disembunyikan menggunakan kelas hidden, tetapi nilainya tetap otomatis terisi -->
+                <div class="hidden">
+                    <label class="block font-semibold text-slate-600 mb-1">Tanggal Upload</label>
+                    <input type="text" id="upTanggal" readonly class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUL 6.01 (PDF)</label>
+                        <input type="file" id="docTul601" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUL 6.03 (PDF)</label>
+                        <input type="file" id="docTul603" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUL 1.09 (SPK) (PDF)</label>
+                        <input type="file" id="docTul109" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUL 1.10 (BA) (PDF)</label>
+                        <input type="file" id="docTul110" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUL 1.11 (PDL) (PDF)</label>
+                        <input type="file" id="docTul111" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">TUG 10 (PDF)</label>
+                        <input type="file" id="docTug10" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                    </div>
+                </div>
+
+                <!-- CONDITIONAL UPLOADS BASED ON TARIF & DAYA -->
+                <div class="border-t border-slate-200 pt-3 space-y-3">
+                    <p class="font-bold text-slate-700">Dokumen Khusus Tarif / Daya</p>
+                    
+                    <div id="fieldSuratS2" class="hidden">
+                        <label class="block font-semibold text-amber-700 mb-1">SURAT KETERANGAN S2 (PDF)</label>
+                        <input type="file" id="docSuratS2" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-50 file:text-xs">
+                    </div>
+
+                    <div id="fieldSuratB2Under" class="hidden">
+                        <label class="block font-semibold text-amber-700 mb-1">SURAT KETERANGAN B2&I1 DIBAWAH 6.600 (PDF)</label>
+                        <input type="file" id="docSuratB2Under" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-50 file:text-xs">
+                    </div>
+
+                    <div id="fieldSuratB2Over" class="hidden">
+                        <label class="block font-semibold text-amber-700 mb-1">SURAT KETERANGAN B2&I1 DIATAS 6.600 (PDF)</label>
+                        <input type="file" id="docSuratB2Over" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-50 file:text-xs">
+                    </div>
+
+                    <div id="fieldSuratPailit" class="hidden">
+                        <label class="block font-semibold text-amber-700 mb-1">SURAT KETERANGAN PAILIT PENGADILAN (PDF)</label>
+                        <input type="file" id="docSuratPailit" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-50 file:text-xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">DATA TAGIHAN LISTRIK (PDF)</label>
+                    <input type="file" id="docTagihan" accept="application/pdf" class="w-full text-slate-500 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-xs">
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                  <button type="button" onclick="closeModal('modalUpload')" class="w-1/2 py-3 border border-slate-200 rounded-xl font-semibold text-slate-600">Batal</button>
+                  <!-- Tambahkan ID pada tombol dan span teks di dalamnya -->
+                  <button type="submit" id="btnSubmitUpload" class="w-1/2 py-3 bg-pln-blue hover:bg-pln-darkBlue text-white rounded-xl font-semibold shadow-md flex items-center justify-center gap-2">
+                      <span id="btnUploadText">Simpan Dokumen</span>
+                  </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS LOGIC & APPS SCRIPT WRAPPER -->
+    <script>
+
+      // Konfigurasi URL Web App Google Apps Script Anda setelah di-deploy
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3ad3disOJf16o2zNwqmwblP0UrkBOQiPIevEBKplVvPMq90BT9HUNW1WoMp8DxUUV/exec";
+
+    // Membuat Mocking google.script.run agar kompatibel dengan Netlify tanpa ubah kode
+    window.google = window.google || {};
+    window.google.script = window.google.script || {};
+
+    window.google.script.run = (function() {
+      function createProxy() {
+        let successHandler = null;
+        let failureHandler = null;
+
+        const proxy = new Proxy({}, {
+          get: function(target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function(callback) {
+                successHandler = callback;
+                return proxy;
+              };
+            }
+            if (prop === 'withFailureHandler') {
+              return function(callback) {
+                failureHandler = callback;
+                return proxy;
+              };
+            }
+
+            // Ini adalah fungsi backend yang dipanggil (misal: getPRRData, authenticateUser, dll)
+            return function(...args) {
+              const action = prop;
+              const payload = args.length === 1 ? args[0] : args;
+
+              fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, payload: payload })
+              })
+              .then(res => res.json())
+              .then(response => {
+                if (response.success) {
+                  if (successHandler) successHandler(response.result);
+                } else {
+                  if (failureHandler) {
+                    failureHandler(new Error(response.message));
+                  } else {
+                    alert("Error: " + response.message);
+                  }
+                }
+              })
+              .catch(err => {
+                if (failureHandler) {
+                  failureHandler(err);
+                } else {
+                  alert("Koneksi gagal: " + err.message);
+                }
+              });
+            };
+          }
+        });
+        return proxy;
+      }
+
+      return {
+        withSuccessHandler: function(cb) { return createProxy().withSuccessHandler(cb); },
+        withFailureHandler: function(cb) { return createProxy().withFailureHandler(cb); }
+      };
+    })();
+
+
+
+    // MOCK INITIAL DATA FOR PREVIEW / APPS SCRIPT HYBRID
+    let currentUser = null;
+    let prrDataList = [];
+    let chartStatusObj = null;
+    let chartDokumenObj = null;
+
+    // Apps Script Helper
+    function runBackend(functionName, ...args) {
+        return new Promise((resolve, reject) => {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject)[functionName](...args);
+            } else {
+                // Fallback for local UI testing
+                console.warn('Running in Mock Mode');
+                setTimeout(() => {
+                    if (functionName === 'authenticateUser') {
+                        const [u, p] = args;
+                        if (u === 'admin' || u === 'petugas') {
+                            resolve({
+                                status: 'success',
+                                user: {
+                                    Username: u,
+                                    Nama: u === 'admin' ? 'Admin UP3 Bandung' : 'Petugas ULP Melong',
+                                    Role: u === 'admin' ? 'Admin' : 'Petugas',
+                                    ULP: 'ULP Melong',
+                                    UP3: 'UP3 Bandung'
+                                }
+                            });
+                        } else {
+                            resolve({ status: 'error', message: 'User not found' });
+                        }
+                    } else if (functionName === 'getPRRData') {
+                        resolve({
+                            status: 'success',
+                            data: [
+                                { rowIndex: 2, IDPEL: '531234567890', NAMA: 'BUDI SANTOSO', ALAMAT: 'Jl. Merdeka No. 12', TARIF: 'S2', DAYA: 1300, RUPIAH: 4500000, ULP: 'ULP Melong', UP3: 'UP3 Bandung', STATUS_REVISIT: 'SUDAH REVISIT', STATUS_DOKUMEN: 'BELUM LENGKAP', STATUS_REALISASI: 'BELUM TUNTAS' },
+                                { rowIndex: 3, IDPEL: '531234567891', NAMA: 'PT MAJU JAYA', ALAMAT: 'Jl. Industri No. 8', TARIF: 'B2', DAYA: 11000, RUPIAH: 28500000, ULP: 'ULP Melong', UP3: 'UP3 Bandung', STATUS_REVISIT: 'BELUM REVISIT', STATUS_DOKUMEN: 'SUDAH LENGKAP', STATUS_REALISASI: 'SUDAH VALID' }
+                            ]
+                        });
+                    // === TAMBAHKAN KODE INI AGAR MOCK MODE BISA MENAMPILKAN FOTO & PDF ===
+                    } else if (functionName === 'getDokumenByIDPEL') {
+                        const [idpel] = args;
+                        resolve({
+                            status: 'success',
+                            documents: [
+                                { name: 'TUL 6.03 - ' + idpel + '.pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+                                { name: 'TUL 1.10 (BA) - ' + idpel + '.pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }
+                            ],
+                            photos: [
+                                { name: 'Foto KWH - ' + idpel + '.jpg', url: 'https://picsum.photos/300/200' },
+                                { name: 'Foto Bangunan - ' + idpel + '.jpg', url: 'https://picsum.photos/300/200' }
+                            ]
+                        });
+                    // ===================================================================
+                    } else {
+                        resolve({ status: 'success' });
+                    }
+                }, 800);
+            }
+        });
+    }
+
+    // Loading Controller
+    function showLoading(msg = 'Memuat Data...') {
+        document.getElementById('loadingText').innerText = msg;
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        document.getElementById('loadingOverlay').classList.add('flex');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        document.getElementById('loadingOverlay').classList.remove('flex');
+    }
+
+    // Login Handler
+    async function handleLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    
+    showLoading('Proses Autentikasi...');
+    try {
+        const res = await runBackend('authenticateUser', u, p);
+        hideLoading();
+        if (res.status === 'success') {
+            currentUser = res.user;
+            
+            // SIMPAN SESI KE LOCALSTORAGE
+            localStorage.setItem('pln_current_user', JSON.stringify(currentUser));
+            
+            initAppLayout();
+        } else {
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+    } catch (err) {
+        hideLoading();
+        alert('Terjadi kesalahan sistem: ' + err);
+    }
+}
+
+    // Perbarui fungsi handleLogout dengan menambahkan indikator loading
+function handleLogout() {
+    // Tampilkan loading sebentar agar proses terasa mulus
+    showLoading('Keluar dari Sistem...');
+
+    setTimeout(() => {
+        currentUser = null;
+        
+        // HAPUS SESI DARI LOCALSTORAGE
+        localStorage.removeItem('pln_current_user');
+        
+        // RESET SEMUA INPUT PENCARIAN SAAT LOGOUT
+        const prrSearch = document.getElementById('prrSearchInput');
+        if (prrSearch) prrSearch.value = '';
+
+        const downloadSearch = document.getElementById('searchIdpelDownload');
+        if (downloadSearch) downloadSearch.value = '';
+
+        const downloadResult = document.getElementById('downloadResult');
+        if (downloadResult) downloadResult.classList.add('hidden');
+
+        document.getElementById('mainView').classList.add('hidden');
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('loginForm').reset();
+
+        // Sembunyikan loading setelah pindah ke halaman login
+        hideLoading();
+    }, 500); // Jeda waktu 0.5 detik untuk transisi animasi loading
+}
+
+window.onload = function() {
+    const savedUser = localStorage.getItem('pln_current_user');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            // Langsung masuk ke layout utama tanpa ke halaman login
+            initAppLayout();
+        } catch (e) {
+            localStorage.removeItem('pln_current_user');
+        }
+    }
+};
+
+    // Initialize Layout according to Role & Screen Size
+    // Initialize Layout according to Role & Screen Size
+    async function initAppLayout() {
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('mainView').classList.remove('hidden');
+
+        document.getElementById('mobileUserInfo').innerText = `${currentUser.Nama} (${currentUser.Role})`;
+        document.getElementById('areaFilterDisplay').innerText = `Unit: ${currentUser.ULP} / ${currentUser.UP3}`;
+
+        const roleLower = currentUser.Role ? currentUser.Role.toLowerCase() : '';
+        const isPetugas = roleLower.includes('petugas');
+        const isAdminUp3OrUid = roleLower.includes('admin up3') || roleLower.includes('admin uid');
+
+        const menuUploadContainer = document.getElementById('menuUploadContainer');
+        const prrSectionTitle = document.getElementById('prrSectionTitle');
+
+        if (isAdminUp3OrUid) {
+            // Sembunyikan menu Upload Dokumen untuk Admin UP3 & Admin UID
+            if (menuUploadContainer) menuUploadContainer.classList.add('hidden');
+            if (prrSectionTitle) prrSectionTitle.innerText = 'Daftar Data PRR';
+        } else if (isPetugas) {
+            if (menuUploadContainer) menuUploadContainer.classList.remove('hidden');
+            if (prrSectionTitle) prrSectionTitle.innerText = 'Data PRR (Revisit Lapangan)';
+        } else {
+            if (menuUploadContainer) menuUploadContainer.classList.remove('hidden');
+            if (prrSectionTitle) prrSectionTitle.innerText = 'Upload Dokumen PRR';
+        }
+
+        if (document.getElementById('desktopUserName')) {
+            document.getElementById('desktopUserName').innerText = currentUser.Nama;
+        }
+        
+        if (document.getElementById('desktopUserRole')) {
+            document.getElementById('desktopUserRole').innerText = `${currentUser.Role} - ${currentUser.ULP}`;
+        }
+
+        await loadPRRData();
+        switchTab('dashboard');
+    }
+
+
+
+    let rawPrrDataList = []; // Menyimpan seluruh data asli dari backend
+
+    async function loadPRRData() {
+    showLoading('Mengambil Data...');
+    try {
+        const res = await runBackend('getPRRData', currentUser);
+        hideLoading();
+        if (res.status === 'success') {
+            rawPrrDataList = res.data; // Simpan data mentah
+
+            const role = currentUser.Role ? currentUser.Role.toUpperCase() : "";
+
+            // --- PERBARUI BAGIAN INI ---
+            // 1. Cek apakah role adalah ADMIN UID
+            if (role.includes('ADMIN UID')) {
+                document.getElementById('adminUidFilterContainer').classList.remove('hidden');
+                document.getElementById('adminUp3FilterContainer').classList.add('hidden');
+                populateUidDropdowns(rawPrrDataList);
+                applyUidFilter(); // Terapkan filter bertingkat UID
+            } 
+            // 2. Cek apakah role adalah ADMIN UP3
+            else if (role.includes('ADMIN UP3')) {
+                document.getElementById('adminUp3FilterContainer').classList.remove('hidden');
+                document.getElementById('adminUidFilterContainer').classList.add('hidden');
+                populateUlpDropdown(rawPrrDataList);
+                applyUlpFilter(); // Terapkan filter ULP UP3
+            } 
+            // 3. Untuk role lainnya (Petugas / Admin biasa)
+            else {
+                document.getElementById('adminUp3FilterContainer').classList.add('hidden');
+                document.getElementById('adminUidFilterContainer').classList.add('hidden');
+                prrDataList = [...rawPrrDataList];
+                renderDashboardMetrics();
+                renderPRRList();
+                if (!document.getElementById('section-dashboard').classList.contains('hidden')) {
+                    initCharts();
+                }
+            }
+        }
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+    }
+}
+
+// Mengisi pilihan dropdown UP3 dan ULP secara otomatis untuk Admin UID
+function populateUidDropdowns(data) {
+    const up3Select = document.getElementById('selectUp3Filter');
+    const ulpSelect = document.getElementById('selectUidUlpFilter');
+    if (!up3Select || !ulpSelect) return;
+
+    // Ambil daftar UP3 unik
+    const up3Set = [...new Set(data.map(item => String(item.UP3).trim()))].filter(Boolean).sort();
+    let up3Html = '<option value="ALL">Semua UP3</option>';
+    up3Set.forEach(up3 => {
+        up3Html += `<option value="${up3}">${up3}</option>`;
+    });
+    up3Select.innerHTML = up3Html;
+
+    // Ambil daftar ULP unik
+    const ulpSet = [...new Set(data.map(item => String(item.ULP).trim()))].filter(Boolean).sort();
+    let ulpHtml = '<option value="ALL">Semua ULP</option>';
+    ulpSet.forEach(ulp => {
+        ulpHtml += `<option value="${ulp}">${ulp}</option>`;
+    });
+    ulpSelect.innerHTML = ulpHtml;
+}
+
+// Fungsi untuk memfilter data berdasarkan pilihan UP3 & ULP Admin UID
+function applyUidFilter() {
+    const up3Select = document.getElementById('selectUp3Filter');
+    const ulpSelect = document.getElementById('selectUidUlpFilter');
+    const selectedUp3 = up3Select ? up3Select.value : 'ALL';
+    const selectedUlp = ulpSelect ? ulpSelect.value : 'ALL';
+    const role = currentUser.Role ? currentUser.Role.toUpperCase() : "";
+
+    if (!role.includes('ADMIN UID')) return;
+
+    let filtered = [...rawPrrDataList];
+
+    if (selectedUp3 !== 'ALL') {
+        filtered = filtered.filter(item => String(item.UP3).trim().toUpperCase() === selectedUp3.toUpperCase());
+    }
+    if (selectedUlp !== 'ALL') {
+        filtered = filtered.filter(item => String(item.ULP).trim().toUpperCase() === selectedUlp.toUpperCase());
+    }
+
+    prrDataList = filtered;
+    renderDashboardMetrics();
+    renderPRRList();
+
+    if (!document.getElementById('section-dashboard').classList.contains('hidden')) {
+        initCharts();
+    }
+}
+
+// Handler ketika pilihan UP3 diubah oleh Admin UID (memperbarui isi dropdown ULP secara dinamis)
+function handleUp3FilterChange() {
+    const up3Select = document.getElementById('selectUp3Filter');
+    const selectedUp3 = up3Select ? up3Select.value : 'ALL';
+    
+    const ulpSelect = document.getElementById('selectUidUlpFilter');
+    if (ulpSelect) {
+        let relevantData = rawPrrDataList;
+        if (selectedUp3 !== 'ALL') {
+            relevantData = rawPrrDataList.filter(item => String(item.UP3).trim().toUpperCase() === selectedUp3.toUpperCase());
+        }
+        const ulpSet = [...new Set(relevantData.map(item => String(item.ULP).trim()))].filter(Boolean).sort();
+        let html = '<option value="ALL">Semua ULP</option>';
+        ulpSet.forEach(ulp => {
+            html += `<option value="${ulp}">${ulp}</option>`;
+        });
+        ulpSelect.innerHTML = html;
+        ulpSelect.value = 'ALL';
+    }
+    applyUidFilter();
+}
+
+function handleUidUlpFilterChange() {
+    applyUidFilter();
+}
+
+
+
+// Mengisi pilihan ULP secara otomatis ke dalam dropdown berdasarkan data UP3
+function populateUlpDropdown(data) {
+    const select = document.getElementById('selectUlpFilter');
+    if (!select) return;
+    const currentSelected = select.value;
+
+    // Ambil daftar ULP unik yang ada pada data
+    const ulpSet = [...new Set(data.map(item => String(item.ULP).trim()))].filter(Boolean).sort();
+
+    let html = '<option value="ALL">Semua ULP</option>';
+    ulpSet.forEach(ulp => {
+        html += `<option value="${ulp}">${ulp}</option>`;
+    });
+    select.innerHTML = html;
+
+    if (ulpSet.includes(currentSelected)) {
+        select.value = currentSelected;
+    }
+}
+
+// Fungsi untuk memfilter data berdasarkan ULP yang dipilih di dropdown
+function applyUlpFilter() {
+    const select = document.getElementById('selectUlpFilter');
+    const selectedUlp = select ? select.value : 'ALL';
+    const role = currentUser.Role ? currentUser.Role.toUpperCase() : "";
+
+    if (selectedUlp === 'ALL' || !role.includes('ADMIN UP3')) {
+        prrDataList = [...rawPrrDataList];
+    } else {
+        prrDataList = rawPrrDataList.filter(item => String(item.ULP).trim().toUpperCase() === selectedUlp.toUpperCase());
+    }
+
+    renderDashboardMetrics();
+    renderPRRList();
+
+    // Perbarui chart jika sedang di tab dashboard
+    if (!document.getElementById('section-dashboard').classList.contains('hidden')) {
+        initCharts();
+    }
+}
+
+function handleUlpFilterChange() {
+    applyUlpFilter();
+}
+
+    // Switch View Tabs
+    function switchTab(tab) {
+    document.getElementById('section-dashboard').classList.add('hidden');
+    document.getElementById('section-prr').classList.add('hidden');
+    document.getElementById('section-download').classList.add('hidden');
+
+    // === RESET INPUT PENCARIAN SAAT PINDAH MENU ===
+    const prrSearch = document.getElementById('prrSearchInput');
+    if (prrSearch) {
+        prrSearch.value = '';
+        // Jika berada di tab PRR/Upload, tampilkan kembali list utuh tanpa filter
+        if (typeof renderPRRList === 'function' && typeof rawPrrDataList !== 'undefined') {
+            prrDataList = [...rawPrrDataList];
+            renderPRRList();
+        }
+    }
+
+    const downloadSearch = document.getElementById('searchIdpelDownload');
+    const downloadResult = document.getElementById('downloadResult');
+    if (downloadSearch) downloadSearch.value = '';
+    if (downloadResult) downloadResult.classList.add('hidden'); // Sembunyikan hasil pencarian download sebelumnya
+    // =============================================
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-pln-blue/20', 'text-pln-blue', 'border', 'border-pln-blue/30');
+        btn.classList.add('text-slate-400');
+    });
+
+    if (document.getElementById(`nav-${tab}`)) {
+        document.getElementById(`nav-${tab}`).classList.add('bg-pln-blue/20', 'text-pln-blue', 'border', 'border-pln-blue/30');
+        document.getElementById(`nav-${tab}`).classList.remove('text-slate-400');
+    }
+
+    // Reset warna Bottom Nav (Mobile)
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('text-pln-blue');
+        btn.classList.add('text-slate-400');
+    });
+
+    if (document.getElementById(`mobile-nav-${tab}`)) {
+        document.getElementById(`mobile-nav-${tab}`).classList.add('text-pln-blue');
+        document.getElementById(`mobile-nav-${tab}`).classList.remove('text-slate-400');
+    }
+
+    document.getElementById(`section-${tab}`).classList.remove('hidden');
+
+    if (tab === 'dashboard') {
+        setTimeout(initCharts, 100);
+    }
+}
+
+    // Render Dashboard Metrics
+    function renderDashboardMetrics() {
+        const totalData = prrDataList.length;
+        const totalNominal = prrDataList.reduce((acc, curr) => acc + (Number(curr.RUPIAH) || 0), 0);
+        
+        const validDataList = prrDataList.filter(item => item.STATUS_REALISASI === 'SUDAH VALID');
+        const totalDataValid = validDataList.length;
+        const totalNominalValid = validDataList.reduce((acc, curr) => acc + (Number(curr.RUPIAH) || 0), 0);
+
+        document.getElementById('cardTotalData').innerText = totalData.toLocaleString('id-ID');
+        document.getElementById('cardTotalNominal').innerText = 'Rp ' + totalNominal.toLocaleString('id-ID');
+        document.getElementById('cardDataValid').innerText = totalDataValid.toLocaleString('id-ID');
+        document.getElementById('cardNominalValid').innerText = 'Rp ' + totalNominalValid.toLocaleString('id-ID');
+    }
+
+    // Charts Initialization
+    function initCharts() {
+        const revisitDone = prrDataList.filter(i => i.STATUS_REVISIT === 'SUDAH REVISIT').length;
+        const revisitPending = prrDataList.length - revisitDone;
+        
+        const realisasiDone = prrDataList.filter(i => i.STATUS_REALISASI === 'SUDAH VALID').length;
+        const realisasiPending = prrDataList.length - realisasiDone;
+
+        const docLengkap = prrDataList.filter(i => i.STATUS_DOKUMEN === 'SUDAH LENGKAP').length;
+        const docBelum = prrDataList.length - docLengkap;
+
+        // Pie Chart Revisit
+        const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+        if (chartStatusObj) chartStatusObj.destroy();
+        chartStatusObj = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sudah Revisit', 'Belum Revisit'],
+                datasets: [{
+                    data: [revisitDone, revisitPending],
+                    backgroundColor: ['#00A2E8', '#FF0000']
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Pie Chart Dokumen
+        const ctxDok = document.getElementById('chartDokumen').getContext('2d');
+        if (chartDokumenObj) chartDokumenObj.destroy();
+        chartDokumenObj = new Chart(ctxDok, {
+            type: 'doughnut',
+            data: {
+                labels: ['Dokumen Lengkap', 'Belum Lengkap'],
+                datasets: [{
+                    data: [docLengkap, docBelum],
+                    backgroundColor: ['#10B981', '#FF0000']
+                }]
+            },
+            options: { responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom'
+             }
+            }
+            }
+        });
+    }
+
+    // Render List PRR Cards
+    // Render List PRR Cards / Table
+    // --- Variabel State Pagination (Letakkan di luar fungsi, di bagian atas script Anda) ---
+let currentPRRPage = 1;
+const prrRowsPerPage = 8; // Hanya untuk batasan tabel web/desktop
+
+function renderPRRList() {
+    const container = document.getElementById('prrListContainer');
+    container.innerHTML = '';
+
+    if (prrDataList.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 bg-white rounded-2xl border border-slate-200">Tidak ada data PRR ditemukan.</div>`;
+        return;
+    }
+
+    // --- 1. TAMPILAN MOBILE (HP): Menampilkan SEMUA data tanpa pagination ---
+    const mobileContainer = document.createElement('div');
+    mobileContainer.className = 'grid grid-cols-1 gap-4 md:hidden';
+
+    prrDataList.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition cursor-pointer space-y-3';
+        card.onclick = () => openEntryModal(item);
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${item.TARIF} / ${item.DAYA} VA</span>
+                    <h4 class="font-bold text-slate-900 text-sm mt-1">${item.NAMA}</h4>
+                    <p class="text-xs text-slate-500 font-mono">${item.IDPEL}</p>
+                </div>
+                <span class="text-xs font-bold text-pln-blue">Rp ${Number(item.RUPIAH).toLocaleString('id-ID')}</span>
+            </div>
+            <p class="text-xs text-slate-500 line-clamp-1"><i class="fa-solid fa-location-dot mr-1"></i>${item.ALAMAT}</p>
+            <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1 text-[10px]">
+                <span class="px-2 py-0.5 rounded-full ${item.STATUS_REVISIT === 'SUDAH REVISIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'} font-semibold">
+                    ${item.STATUS_REVISIT || 'BELUM REVISIT'}
+                </span>
+            </div>
+        `;
+        mobileContainer.appendChild(card);
+    });
+
+    // --- 2. TAMPILAN WEB / DESKTOP: Menggunakan sistem Next/Prev (Pagination) ---
+    const totalPages = Math.ceil(prrDataList.length / prrRowsPerPage) || 1;
+    if (currentPRRPage > totalPages) currentPRRPage = totalPages;
+    if (currentPRRPage < 1) currentPRRPage = 1;
+
+    const startIndex = (currentPRRPage - 1) * prrRowsPerPage;
+    const endIndex = startIndex + prrRowsPerPage;
+    const paginatedData = prrDataList.slice(startIndex, endIndex);
+
+    const webContainer = document.createElement('div');
+    webContainer.className = 'hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden col-span-full';
+    
+    let tableHTML = `
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                        <th class="p-3.5">IDPEL & Nama</th>
+                        <th class="p-3.5">Tarif / Daya</th>
+                        <th class="p-3.5">Alamat</th>
+                        <th class="p-3.5">Nominal (Rp)</th>
+                        <th class="p-3.5 text-center">Status Revisit</th>
+                        <th class="p-3.5 text-center">Status Dokumen</th>
+                        <th class="p-3.5 text-center">Status Valid</th>
+                        <th class="p-3.5 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+    `;
+
+    paginatedData.forEach(item => {
+        const revisitBadge = item.STATUS_REVISIT === 'SUDAH REVISIT' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[10px]">SUDAH REVISIT</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold text-[10px]">BELUM REVISIT</span>';
+        
+        const dokumenBadge = item.STATUS_DOKUMEN === 'SUDAH LENGKAP' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[10px]">SUDAH LENGKAP</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold text-[10px]">BELUM LENGKAP</span>';
+        
+        const realisasiBadge = item.STATUS_REALISASI === 'SUDAH VALID' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px]">SUDAH VALID</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-[11px]">BELUM VALID</span>';
+
+        tableHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-3.5">
+                    <div class="font-bold text-slate-900">${item.NAMA}</div>
+                    <div class="text-slate-500 font-mono text-[11px]">${item.IDPEL}</div>
+                </td>
+                <td class="p-3.5 font-medium text-slate-700">${item.TARIF} / ${item.DAYA} VA</td>
+                <td class="p-3.5 text-slate-600 max-w-xs truncate"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${item.ALAMAT}</td>
+                <td class="p-3.5 font-bold text-pln-blue">Rp ${Number(item.RUPIAH).toLocaleString('id-ID')}</td>
+                <td class="p-3.5 text-center">${revisitBadge}</td>
+                <td class="p-3.5 text-center">${dokumenBadge}</td>
+                <td class="p-3.5 text-center">${realisasiBadge}</td>
+                <td class="p-3.5 text-center">
+                    <button onclick="openEntryModal(prrDataList.find(i => i.rowIndex === ${item.rowIndex}))" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> Detail
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    const startItem = prrDataList.length === 0 ? 0 : startIndex + 1;
+    const endItem = Math.min(endIndex, prrDataList.length);
+
+    tableHTML += `
+        <div class="flex items-center justify-between px-6 py-4 bg-white border-t border-slate-200">
+            <div class="text-xs text-slate-500">
+                Menampilkan ${startItem} - ${endItem} dari ${prrDataList.length} data
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="changePRRPage(-1)" ${currentPRRPage <= 1 ? 'disabled' : ''} class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                </button>
+                <span class="text-xs font-semibold text-slate-600 px-2">Halaman ${currentPRRPage} dari ${totalPages}</span>
+                <button onclick="changePRRPage(1)" ${currentPRRPage >= totalPages ? 'disabled' : ''} class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    webContainer.innerHTML = tableHTML;
+
+    container.appendChild(mobileContainer);
+    container.appendChild(webContainer);
+}
+
+// --- Fungsi Pendukung untuk Mengubah Halaman ---
+function changePRRPage(direction) {
+    currentPRRPage += direction;
+    renderPRRList();
+}
+
+    // Filter List PRR (Diperbaiki agar aman untuk data angka/IDPEL)
+function filterPRRList() {
+    const query = document.getElementById('prrSearchInput').value.toLowerCase().trim();
+    
+    const filtered = prrDataList.filter(item => {
+        const idpel = item.IDPEL ? String(item.IDPEL).toLowerCase() : '';
+        const nama = item.NAMA ? String(item.NAMA).toLowerCase() : '';
+        
+        return idpel.includes(query) || nama.includes(query);
+    });
+    
+    const container = document.getElementById('prrListContainer');
+    container.innerHTML = '';
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 bg-white rounded-2xl border border-slate-200">Tidak ada data PRR yang cocok.</div>`;
+        return;
+    }
+
+    const mobileContainer = document.createElement('div');
+    mobileContainer.className = 'grid grid-cols-1 gap-4 md:hidden';
+
+    const webContainer = document.createElement('div');
+    webContainer.className = 'hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden col-span-full';
+    
+    let tableHTML = `
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                        <th class="p-3.5 text-center">IDPEL & Nama</th>
+                        <th class="p-3.5 text-center">Tarif / Daya</th>
+                        <th class="p-3.5 text-center">Alamat</th>
+                        <th class="p-3.5 text-center">Nominal (Rp)</th>
+                        <th class="p-3.5 text-center">Status Revisit</th>
+                        <th class="p-3.5 text-center">Status Dokumen</th>
+                        <th class="p-3.5 text-center">Status Valid</th>
+                        <th class="p-3.5 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+    `;
+
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition cursor-pointer space-y-3';
+        card.onclick = () => openEntryModal(item);
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${item.TARIF} / ${item.DAYA} VA</span>
+                    <h4 class="font-bold text-slate-900 text-sm mt-1">${item.NAMA}</h4>
+                    <p class="text-xs text-slate-500 font-mono">${item.IDPEL}</p>
+                </div>
+                <span class="text-xs font-bold text-pln-blue">Rp ${Number(item.RUPIAH).toLocaleString('id-ID')}</span>
+            </div>
+            <p class="text-xs text-slate-500 line-clamp-1"><i class="fa-solid fa-location-dot mr-1"></i>${item.ALAMAT}</p>
+            <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1 text-[10px]">
+                <span class="px-2 py-0.5 rounded-full ${item.STATUS_REVISIT === 'SUDAH REVISIT' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'} font-semibold">
+                    ${item.STATUS_REVISIT || 'BELUM REVISIT'}
+                </span>
+                <span class="px-2 py-0.5 rounded-full ${item.STATUS_DOKUMEN === 'SUDAH LENGKAP' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'} font-semibold">
+                    ${item.STATUS_DOKUMEN || 'BELUM LENGKAP'}
+                </span>
+            </div>
+        `;
+        mobileContainer.appendChild(card);
+
+        const revisitBadge = item.STATUS_REVISIT === 'SUDAH REVISIT' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[10px]">SUDAH REVISIT</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold text-[10px]">BELUM REVISIT</span>';
+        
+        const dokumenBadge = item.STATUS_DOKUMEN === 'SUDAH LENGKAP' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-[10px]">SUDAH LENGKAP</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-semibold text-[10px]">BELUM LENGKAP</span>';
+        
+        const realisasiBadge = item.STATUS_REALISASI === 'SUDAH VALID' 
+            ? '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px]">SUDAH VALID</span>' 
+            : '<span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-[11px]">BELUM VALID</span>';
+
+        tableHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-3.5">
+                    <div class="font-bold text-slate-900">${item.NAMA}</div>
+                    <div class="text-slate-500 font-mono text-[11px]">${item.IDPEL}</div>
+                </td>
+                <td class="p-3.5 font-medium text-slate-700">${item.TARIF} / ${item.DAYA} VA</td>
+                <td class="p-3.5 text-slate-600 max-w-xs truncate"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${item.ALAMAT}</td>
+                <td class="p-3.5 font-bold text-pln-blue">Rp ${Number(item.RUPIAH).toLocaleString('id-ID')}</td>
+                <td class="p-3.5 text-center">${revisitBadge}</td>
+                <td class="p-3.5 text-center">${dokumenBadge}</td>
+                <td class="p-3.5 text-center">${realisasiBadge}</td>
+                <td class="p-3.5 text-center">
+                    <button onclick="openEntryModal(prrDataList.find(i => i.rowIndex === ${item.rowIndex}))" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition shadow-sm inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> Detail
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    webContainer.innerHTML = tableHTML;
+
+    container.appendChild(mobileContainer);
+    container.appendChild(webContainer);
+}
+
+    // Open Modal Entry based on Role
+function openEntryModal(item) {
+    if (currentUser.Role.toLowerCase() === 'petugas') {
+        document.getElementById('modalRevisitIdpel').innerText = `${item.IDPEL} - ${item.NAMA}`;
+        document.getElementById('revRowIndex').value = item.rowIndex;
+        document.getElementById('revTanggal').value = new Date().toISOString().split('T')[0];
+        
+        // Tampilkan teks loading di kolom lokasi saat modal pertama kali terbuka
+        document.getElementById('revLokasi').value = "Mendapatkan koordinat GPS...";
+
+        document.getElementById('modalRevisit').classList.remove('hidden');
+        document.getElementById('modalRevisit').classList.add('flex');
+
+        // --- OTOMATIS AMBIL KOORDINAT GPS SAAT MODAL DIBUKA ---
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('revLokasi').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            }, err => {
+                document.getElementById('revLokasi').value = "Gagal mendeteksi GPS (Coba klik tombol target)";
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        } else {
+            document.getElementById('revLokasi').value = "Geolocation tidak didukung browser ini.";
+        }
+
+    } else {
+        document.getElementById('modalUploadIdpel').innerText = `${item.IDPEL} - ${item.NAMA} (${item.TARIF} / ${item.DAYA} VA)`;
+        document.getElementById('upRowIndex').value = item.rowIndex;
+        document.getElementById('upTanggal').value = new Date().toISOString().split('T')[0];
+
+        const tarif = (item.TARIF || '').toUpperCase();
+        const daya = Number(item.DAYA) || 0;
+
+        document.getElementById('fieldSuratS2').classList.toggle('hidden', tarif !== 'S2');
+        document.getElementById('fieldSuratB2Under').classList.toggle('hidden', !((tarif === 'B2' || tarif === 'I1') && daya < 6600));
+        document.getElementById('fieldSuratB2Over').classList.toggle('hidden', !((tarif === 'B2' || tarif === 'I1') && daya >= 6600));
+        document.getElementById('fieldSuratPailit').classList.toggle('hidden', !((tarif === 'B2' || tarif === 'I1') && daya >= 6600));
+
+        document.getElementById('modalUpload').classList.remove('hidden');
+        document.getElementById('modalUpload').classList.add('flex');
+    }
+}
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+    }
+
+    // GPS Location Helper
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            showLoading('Mendapatkan GPS...');
+            navigator.geolocation.getCurrentPosition(pos => {
+                hideLoading();
+                document.getElementById('revLokasi').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            }, err => {
+                hideLoading();
+                alert('Gagal mengambil lokasi GPS');
+            });
+        } else {
+            alert('Geolocation tidak didukung browser ini.');
+        }
+    }
+
+    // Convert File to Base64 Helper
+    // Convert File to Base64 with Smart Image Compression
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) return resolve(null);
+            
+            // Jika file berupa gambar (untuk petugas), lakukan kompresi otomatis
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Batasi dimensi maksimal (misal 1200px) agar ukuran base64 ringan
+                        const MAX_WIDTH = 600;
+                        const MAX_HEIGHT = 600;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Kompres ke format JPEG dengan kualitas 0.75 (75%)
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                        resolve({
+                            name: file.name,
+                            mimeType: 'image/jpeg',
+                            base64: dataUrl.split(',')[1]
+                        });
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            } else {
+                // Untuk file non-gambar (seperti PDF dokumen admin), proses normal tanpa kompresi
+                const reader = new FileReader();
+                reader.onload = () => resolve({
+                    name: file.name,
+                    mimeType: file.type,
+                    base64: reader.result.split(',')[1]
+                });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Submit Form Revisit (Petugas)
+async function submitFormRevisit(e) {
+    e.preventDefault();
+
+    // Validasi pengecekan foto wajib diunggah
+    const fotoKwh = document.getElementById('revFotoKwh').files[0];
+    const fotoBangunan = document.getElementById('revFotoBangunan').files[0];
+    const fotoKiri = document.getElementById('revFotoKiri').files[0];
+    const fotoKanan = document.getElementById('revFotoKanan').files[0];
+    const fotoDepan = document.getElementById('revFotoDepan').files[0];
+
+    if (!fotoKwh || !fotoBangunan || !fotoKiri || !fotoKanan || !fotoDepan) {
+        showCustomAlert("Semua foto lapangan (KWH, Bangunan, Kiri, Kanan, Depan) wajib diunggah!", "Perhatian");
+        return;
+    }
+
+    // 1. Tutup modal terlebih dahulu agar tidak menghalangi layar
+    closeModal('modalRevisit');
+
+    // 2. Munculkan loading overlay layar penuh
+    showLoading('Menyimpan Data...');
+
+    try {
+        const payload = {
+            rowIndex: document.getElementById('revRowIndex').value,
+            tanggal: document.getElementById('revTanggal').value,
+            lokasi: document.getElementById('revLokasi').value,
+            keterangan: document.getElementById('revKeterangan').value,
+            fotoKwh: await fileToBase64(fotoKwh),
+            fotoBangunan: await fileToBase64(fotoBangunan),
+            fotoKiri: await fileToBase64(fotoKiri),
+            fotoKanan: await fileToBase64(fotoKanan),
+            fotoDepan: await fileToBase64(fotoDepan)
+        };
+
+        const res = await runBackend('saveRevisitData', payload);
+
+        // 3. Sembunyikan loading setelah selesai
+        hideLoading();
+
+        if (res.status === 'success') {
+            showCustomAlert('Data Revisit Berhasil Disimpan!', 'Berhasil');
+            await loadPRRData();
+        } else {
+            showCustomAlert('Gagal: ' + res.message, 'Perhatian');
+        }
+    } catch (err) {
+        hideLoading();
+        showCustomAlert('Terjadi kesalahan: ' + err, 'Error');
+    }
+}
+
+    // Submit Form Upload (Admin)
+async function submitFormUpload(e) {
+    e.preventDefault();
+
+    // 1. Tutup modal terlebih dahulu agar tidak menghalangi layar
+    closeModal('modalUpload');
+
+    // 2. Munculkan loading overlay layar penuh
+    showLoading('Menyimpan Dokumen...');
+
+    try {
+        const payload = {
+            rowIndex: document.getElementById('upRowIndex').value,
+            tanggal: document.getElementById('upTanggal').value,
+            tul601: await fileToBase64(document.getElementById('docTul601').files[0]),
+            tul603: await fileToBase64(document.getElementById('docTul603').files[0]),
+            tul109: await fileToBase64(document.getElementById('docTul109').files[0]),
+            tul110: await fileToBase64(document.getElementById('docTul110').files[0]),
+            tul111: await fileToBase64(document.getElementById('docTul111').files[0]),
+            tug10: await fileToBase64(document.getElementById('docTug10').files[0]),
+            suratS2: await fileToBase64(document.getElementById('docSuratS2').files[0]),
+            suratB2Under: await fileToBase64(document.getElementById('docSuratB2Under').files[0]),
+            suratB2Over: await fileToBase64(document.getElementById('docSuratB2Over').files[0]),
+            suratPailit: await fileToBase64(document.getElementById('docSuratPailit').files[0]),
+            tagihan: await fileToBase64(document.getElementById('docTagihan').files[0])
+        };
+
+        const res = await runBackend('saveUploadData', payload);
+        
+        // 3. Sembunyikan loading setelah selesai
+        hideLoading();
+
+        if (res.status === 'success') {
+            showCustomAlert('Dokumen Berhasil Diunggah!');
+            await loadPRRData();
+        } else {
+            alert('Gagal: ' + res.message);
+        }
+    } catch (err) {
+        hideLoading();
+        alert('Terjadi kesalahan: ' + err);
+    }
+}
+
+    // Variabel global untuk menyimpan data dokumen & foto
+let currentDownloadDocuments = [];
+let currentDownloadPhotos = [];
+
+async function searchDokumenByIDPEL() {
+    const idpel = document.getElementById('searchIdpelDownload').value.trim();
+    if (!idpel) {
+        showCustomAlert('Masukkan IDPEL terlebih dahulu', 'Perhatian');
+        return;
+    }
+
+    showLoading('Mencari Dokumen & Foto...');
+    try {
+        const res = await runBackend('getDokumenByIDPEL', idpel, currentUser);
+        hideLoading();
+
+        const resultContainer = document.getElementById('downloadResult');
+        const docGrid = document.getElementById('docGrid');
+        if (docGrid) docGrid.innerHTML = '';
+
+        const hasDocs = res.documents && res.documents.length > 0;
+        const hasPhotos = res.photos && res.photos.length > 0;
+
+        if (res.status === 'success' && (hasDocs || hasPhotos)) {
+            const resultHeader = document.getElementById('resultHeader');
+            if (resultHeader) resultHeader.innerText = `Dokumen & Foto Pelanggan: ${idpel}`;
+            
+            if (resultContainer) resultContainer.classList.remove('hidden');
+
+            // Simpan ke variabel global
+            currentDownloadDocuments = res.documents || [];
+            currentDownloadPhotos = res.photos || [];
+
+            // 1. Render Dokumen PDF
+            currentDownloadDocuments.forEach(doc => {
+                const card = document.createElement('div');
+                card.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs';
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 truncate pr-2">
+                        <i class="fa-solid fa-file-pdf text-red-500 text-base shrink-0"></i>
+                        <span class="font-medium text-slate-700 truncate">${doc.name}</span>
+                    </div>
+                    <a href="${doc.url}" target="_blank" class="px-3 py-1 bg-pln-blue text-white rounded-lg font-semibold hover:bg-pln-darkBlue transition shrink-0">
+                        Unduh
+                    </a>
+                `;
+                docGrid.appendChild(card);
+            });
+
+            // 2. Render Foto (Tampil persis seperti dokumen PDF dengan ikon gambar)
+            currentDownloadPhotos.forEach(photo => {
+                const card = document.createElement('div');
+                card.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs';
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 truncate pr-2">
+                        <i class="fa-solid fa-image text-indigo-500 text-base shrink-0"></i>
+                        <span class="font-medium text-slate-700 truncate">${photo.name}</span>
+                    </div>
+                    <a href="${photo.url}" target="_blank" class="px-3 py-1 bg-pln-blue text-white rounded-lg font-semibold hover:bg-pln-darkBlue transition shrink-0">
+                        Unduh
+                    </a>
+                `;
+                docGrid.appendChild(card);
+            });
+
+        } else {
+            if (resultContainer) resultContainer.classList.add('hidden');
+            showCustomAlert('Dokumen atau foto tidak ditemukan untuk IDPEL tersebut.', 'Informasi');
+        }
+    } catch (err) {
+        hideLoading();
+        showCustomAlert('Terjadi kesalahan: ' + err, 'Error');
+    }
+}
+
+// Fungsi Unduh Semua (Menggabungkan Dokumen & Foto menjadi 1 file ZIP)
+async function downloadAllDocs() {
+    const idpel = document.getElementById('searchIdpelDownload').value.trim();
+    if (!idpel) {
+        showCustomAlert("Silakan cari data pelanggan terlebih dahulu!", "Perhatian");
+        return;
+    }
+
+    showLoading("Menyiapkan file ZIP Dokumen dan Foto...");
+    
+    try {
+        // Memanggil fungsi backend Google Apps Script
+        const res = await runBackend('downloadAllAsZip', idpel);
+        hideLoading();
+
+        if (res.status === 'success') {
+            showCustomAlert("File ZIP berhasil diunduh.", "Berhasil");
+            
+            // Unduh file secara langsung di browser dari data Base64 (Tanpa Drive)
+            const source = `data:${res.mimeType};base64,${res.base64}`;
+            const link = document.createElement('a');
+            link.href = source;
+            link.download = res.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+        } else {
+            showCustomAlert(res.message || "Gagal membuat file ZIP.", "Perhatian");
+        }
+    } catch (err) {
+        hideLoading();
+        showCustomAlert("Terjadi kesalahan: " + err, "Error");
+    }
+}
+
+    function showCustomAlert(message, title = "Informasi") {
+    // Hapus alert lama jika masih ada
+    const existingModal = document.getElementById('customAlertModal');
+    if (existingModal) existingModal.remove();
+
+    // Buat elemen pembungkus modal (overlay gelap di tengah layar)
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'customAlertModal';
+    modalOverlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in';
+
+    // Konten Modal
+    modalOverlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 transform scale-100 transition-all">
+            <!-- Icon Sukses -->
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl shadow-inner">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            
+            <!-- Teks Pesan -->
+            <div class="space-y-1">
+                <h3 class="font-bold text-slate-900 text-base">${title}</h3>
+                <p class="text-xs text-slate-600">${message}</p>
+            </div>
+
+            <!-- Tombol OK -->
+            <button onclick="closeCustomAlert()" class="w-full py-2.5 bg-pln-blue hover:bg-pln-darkBlue text-white rounded-xl text-xs font-semibold transition shadow-sm">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modalOverlay);
+}
+
+function closeCustomAlert() {
+    const modal = document.getElementById('customAlertModal');
+    if (modal) modal.remove();
+}
+</script>
+</body>
+</html>
